@@ -7,13 +7,22 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Registrar el servicio de movimientos dinámicamente conectando siempre con la API
+// Registrar el servicio de movimientos dinámicamente según configuración
 var apiConfig = builder.Configuration.GetSection("Api");
+var useMock = apiConfig.GetValue<bool>("UseMock", defaultValue: false);
 
-builder.Services.AddHttpClient<IMovimientoService, ApiMovimientoService>(client =>
+if (useMock)
 {
-    client.BaseAddress = new Uri(apiConfig["BaseUrl"] ?? "http://localhost");
-});
+    builder.Services.AddScoped<IMovimientoService, MockMovimientoService>();
+}
+else
+{
+    builder.Services.AddHttpClient<IMovimientoService, ApiMovimientoService>(client =>
+    {
+        var baseUrl = apiConfig["BaseUrl"] ?? "http://localhost:7000";
+        client.BaseAddress = new Uri(baseUrl);
+    });
+}
 
 var app = builder.Build();
 

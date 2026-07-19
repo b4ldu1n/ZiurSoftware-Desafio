@@ -47,7 +47,7 @@ La conexión se realiza directamente a través de HTTP contra una **Minimal API*
 El proyecto está diseñado bajo principios de acoplamiento débil (Loose Coupling):
 * **Capa de Negocio (Abstracción)**: Define la interfaz `IMovimientoService` con el contrato de datos.
 * **Capa de Datos (Red)**: Implementa la interfaz a través de `ApiMovimientoService` ejecutando peticiones asíncronas REST.
-* **Capa de API (Backend)**: Minimal API en un puerto de red local independiente (`http://localhost:5199`) configurado globalmente para retornar JSON con claves en **PascalCase** tal como lo pide Ziur.
+* **Capa de API (Backend)**: Minimal API en un puerto de red local independiente (`http://localhost:7000`) configurado globalmente para retornar JSON con claves en **PascalCase** tal como lo pide Ziur.
 
 ---
 
@@ -63,12 +63,15 @@ dotnet dev-certs https --trust
 ```
 
 ### Configuración del Archivo `appsettings.json` del Frontend
-El archivo [appsettings.json](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/src/ZiurSoftwareChallenge/appsettings.json) especifica la dirección base de la API simulada:
+El archivo [appsettings.json](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/src/ZiurSoftwareChallenge/appsettings.json) especifica si usar simulación o API, y la dirección base de la API:
 ```json
 "Api": {
-  "BaseUrl": "http://localhost:5199/"
+  "UseMock": false,
+  "BaseUrl": "http://localhost:7000"
 }
 ```
+- `UseMock: false` → Usa `ApiMovimientoService` para consumir HTTP
+- `UseMock: true` → Usa `MockMovimientoService` (datos en memoria)
 
 ---
 
@@ -88,15 +91,15 @@ dotnet build
 
 ### Paso 3: Iniciar la Minimal API (Backend)
 ```bash
-dotnet run --project src/ZiurSoftwareChallenge.Api
+dotnet run --project src/ZiurSoftwareChallenge.Api/ZiurSoftwareChallenge.Api.csproj
 ```
-* La API estará escuchando en: **`http://localhost:5199/api/movimientos`**
+* La API estará escuchando en: **`http://localhost:7000/api/movimientos`**
 
 ### Paso 4: Iniciar la Aplicación Blazor (Frontend)
 ```bash
-dotnet run --project src/ZiurSoftwareChallenge
+dotnet run --project src/ZiurSoftwareChallenge/ZiurSoftwareChallenge.csproj
 ```
-* La aplicación estará disponible en: **`http://localhost:5250`** o **`https://localhost:7121`**
+* La aplicación estará disponible en: **`http://localhost:5255`** o **`https://localhost:7156`**
 * Navega a la sección de **Movimientos** desde el menú o directamente a la ruta: **`/movimientos`**
 
 ---
@@ -105,8 +108,8 @@ dotnet run --project src/ZiurSoftwareChallenge
 
 ### Comprobación en Navegador
 1. Levanta ambos proyectos.
-2. Abre la URL `http://localhost:5199/api/movimientos` en el navegador y verifica que responda con la grilla en formato JSON exacta.
-3. Abre `http://localhost:5250/movimientos` (o puerto https) en el navegador y verifica que la grilla dibuje la tabla con los tres registros contables.
+2. Abre la URL `http://localhost:7000/api/movimientos` en el navegador y verifica que responda con la grilla en formato JSON exacta.
+3. Abre `http://localhost:5255/movimientos` (o puerto https: `https://localhost:7156/movimientos`) en el navegador y verifica que la grilla dibuje la tabla con los tres registros contables.
 
 ---
 

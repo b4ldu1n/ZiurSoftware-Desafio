@@ -17,15 +17,15 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.PropertyNamingPolicy = null;
 });
 
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    // Mostrar información de la API en desarrollo
+    app.MapGet("/", () => "API de Movimientos - Ejecutando en http://localhost:7000")
+        .WithName("Info")
+        .WithOpenApi();
 }
 
 app.UseCors("AllowAll");
@@ -36,16 +36,22 @@ app.MapGet("/api/movimientos", () =>
 {
     var movimientos = new List<Movimiento>
     {
-        new(29, "Ajuste al Inventario", false),
-        new(51, "Avance Produccion", false),
-        new(17, "Balance Inicial", false)
+        new() { Codigo = 29, Descripcion = "Ajuste al Inventario", VActiva = false },
+        new() { Codigo = 51, Descripcion = "Avance Produccion", VActiva = false },
+        new() { Codigo = 17, Descripcion = "Balance Inicial", VActiva = false }
     };
     return Results.Ok(movimientos);
 })
-.WithName("GetMovimientos");
+.WithName("GetMovimientos")
+.WithOpenApi();
 
 app.Run();
 
-// Definición del record Movimiento con PascalCase
-public record Movimiento(int Codigo, string Descripcion, bool VActiva);
+// Definición de la clase Movimiento (compatible con el modelo de Blazor)
+public class Movimiento
+{
+    public int Codigo { get; set; }
+    public string Descripcion { get; set; } = "";
+    public bool VActiva { get; set; }
+}
 
