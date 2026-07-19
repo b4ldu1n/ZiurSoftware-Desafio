@@ -1,67 +1,150 @@
-# Ziur Software Challenge - Blazor Web App con .NET 9
+# Ziur Software Challenge - Solución Completa (.NET 9)
 
-¡Bienvenido a la solución del desafío técnico de selección para **Ziur Software**!
-
-Este proyecto consiste en una aplicación interactiva desarrollada en **Blazor Web App (.NET 9)** que consume datos de una API REST de movimientos contables y de inventario, presentándolos en una grilla responsiva de alto rendimiento.
+¡Bienvenido al repositorio de la solución del desafío técnico de selección de **Ziur Software**! Este proyecto implementa una grilla interactiva en **Blazor Web App (.NET 9)** que consume datos contables y de inventario de forma asíncrona, conectándose mediante un cliente HTTP a una simulación de API REST local desarrollada con **ASP.NET Core Minimal API**.
 
 ---
 
-## 1. Portafolio de Negocio: Mapeo de Movimientos
+## Índice de Documentación Detallada
 
-Los datos expuestos por la aplicación representan transacciones clave dentro del catálogo de productos y soluciones contables de Ziur Software:
+Para una revisión arquitectónica profunda, consulte los archivos individuales ubicados en la carpeta [docs/](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/docs/):
 
-* **Balance Inicial (Código 17)**: Habilitado en la versión **STANDARD** (módulo *Registro de Documentos Contables*). Se usa para cargar los saldos de apertura contable y del stock al iniciar operaciones.
-* **Ajuste al Inventario (Código 29)**: Parte de la versión **STANDARD** (*Documentos Productos y Servicios*) y **ENTERPRISE** (*Contabilización automática*). Se usa para regularizar discrepancias físicas contra la contabilidad de almacenes.
-* **Avance Producción (Código 51)**: Incluido en la versión **ENTERPRISE** (*Interfaz IPS y Taller Automotriz*). Se usa en la manufactura y servicios técnicos para documentar el progreso de fases en órdenes de producción.
-
----
-
-## 2. Decisiones de Arquitectura e Ingeniería
-
-Para asegurar una entrega de calidad senior, el proyecto se construyó bajo principios de arquitectura limpia:
-
-* **Inversión de Dependencias (SOLID - DIP)**: La vista inyecta la abstracción `IMovimientoService` y desconoce la implementación de red.
-* **Alternancia Dinámica de Servicios (OCP)**: A través de `appsettings.json`, se puede cambiar de la API real de Ziur al simulador Mock instantáneamente, sin recompilar ni alterar código C#.
-* **Tolerancia a Cambios de Contrato**: El uso de deserialización personalizada y abstracciones aísla a la UI de futuros cambios de nombres o estructuras en el JSON de la API.
+1. [**01 - Objetivo del Proyecto**](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/docs/01_Objetivo.md): Objetivos del reto, alcances y especificación del JSON.
+2. [**02 - Configuración del Entorno**](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/docs/02_Entorno.md): Descarga de SDKs, IDEs, certificados SSL y herramientas de desarrollo.
+3. [**03 - Arquitectura y Diseño Técnico**](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/docs/03_Arquitectura.md): Inyección de dependencias, Clean Architecture y principios SOLID.
+4. [**04 - Flujo de Datos**](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/docs/04_Flujo.md): Diagrama de secuencia ASCII del flujo de datos HTTP.
+5. [**05 - Especificación de la Minimal API**](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/docs/05_API.md): Endpoints expuestos, puertos de red locales y personalización de JSON.
+6. [**06 - Pruebas con Bruno**](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/docs/06_Bruno.md): Guía paso a paso de importación de colecciones de Bruno y ejecución de aserciones.
+7. [**07 - Guía de Ejecución desde Terminal**](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/docs/07_Ejecucion.md): Todos los comandos de CLI detallados para clonar, restaurar, compilar y ejecutar.
+8. [**08 - Configuración del Cliente HTTP**](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/docs/08_CambiarMockPorAPI.md): Detalles técnicos y archivos involucrados en la integración con la API.
+9. [**09 - Walkthrough Chronological**](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/docs/09_Walkthrough.md): Bitácora cronológica del desarrollo incremental del reto.
 
 ---
 
-## 3. Documentación Técnica del Proyecto
+## 1. Objetivo del Reto
 
-Para una revisión en profundidad, consulte la suite de documentación detallada en la carpeta `docs/`:
+El reto consiste en rellenar y consumir una grilla contable en Blazor que muestre tres movimientos específicos:
+* **Ajuste al Inventario (Código 29)**: Utilizado para regularizar stock físico.
+* **Avance Producción (Código 51)**: Utilizado en órdenes de fabricación y taller.
+* **Balance Inicial (Código 17)**: Utilizado al iniciar operaciones comerciales.
 
-1. [**00-EnvironmentSetup.md** (Configuración del Entorno)](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/docs/00-EnvironmentSetup.md): Requisitos de software, SDK de .NET 9, Git, SSL y extensiones del IDE.
-2. [**01-ProjectWalkthrough.md** (Flujo de Desarrollo)](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/docs/01-ProjectWalkthrough.md): Secuencia de pasos implementados para construir la solución de inicio a fin.
-3. [**02-Architecture.md** (Arquitectura y SOLID)](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/docs/02-Architecture.md): Diagramas de flujo de datos, justificación de patrones y mapeo con la oferta comercial de Ziur.
-4. [**03-Configuration.md** (Parámetros y appsettings)](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/docs/03-Configuration.md): Guía de parámetros de control, toggles de Mock y variables de entorno para producción.
-5. [**04-Testing.md** (Bitácora de Pruebas)](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/docs/04-Testing.md): Evidencia de builds limpios y verificación manual de la UI en navegador.
-6. [**05-ApiIntegration.md** (Estrategia de API Real)](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/docs/05-ApiIntegration.md): Plan de contingencia, conmutación de endpoints y manejo de cambios de nombres en propiedades del JSON.
-7. [**06-Deployment.md** (Guía de Despliegue Local)](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/docs/06-Deployment.md): Comandos del CLI para clonar, restaurar, compilar y ejecutar el portal.
+La conexión se realiza directamente a través de HTTP contra una **Minimal API** que emula de forma real el comportamiento del backend esperado en producción.
 
 ---
 
-## 4. Instrucciones de Inicio Rápido (Quickstart)
+## 2. Tecnologías Utilizadas
 
-Ejecute los siguientes comandos en su terminal para iniciar la aplicación:
+* **Backend**: ASP.NET Core Minimal API (.NET 9)
+* **Frontend**: Blazor Web App (Interactive Server render mode, .NET 9)
+* **Estilado**: Bootstrap 5 (CSS Vanilla e integrado en Blazor)
+* **IDE**: Visual Studio Code / Visual Studio 2022
+* **Control de Versiones**: Git
+* **Cliente HTTP de Pruebas**: Bruno (con aserciones automáticas en archivos `.bru`)
 
+---
+
+## 3. Arquitectura del Proyecto
+
+El proyecto está diseñado bajo principios de acoplamiento débil (Loose Coupling):
+* **Capa de Negocio (Abstracción)**: Define la interfaz `IMovimientoService` con el contrato de datos.
+* **Capa de Datos (Red)**: Implementa la interfaz a través de `ApiMovimientoService` ejecutando peticiones asíncronas REST.
+* **Capa de API (Backend)**: Minimal API en un puerto de red local independiente (`http://localhost:5199`) configurado globalmente para retornar JSON con claves en **PascalCase** tal como lo pide Ziur.
+
+---
+
+## 4. Instalación y Configuración
+
+### Prerrequisitos
+Instala [.NET SDK 9.0](https://dotnet.microsoft.com/download/dotnet/9.0) en tu sistema operativo.
+
+### Configuración del Certificado SSL
+Ejecuta en tu consola para habilitar la confianza del protocolo HTTPS localmente:
 ```bash
-# 1. Clonar y posicionarse en la carpeta
-git clone <URL_DEL_REPOSITORIO>
-cd ZiurSoftwareChallenge
-
-# 2. Restaurar paquetes NuGet
-dotnet restore
-
-# 3. Compilar
-dotnet build
-
-# 4. Iniciar aplicación
-dotnet run --project src/ZiurSoftwareChallenge/ZiurSoftwareChallenge.csproj
+dotnet dev-certs https --trust
 ```
 
-Abra el navegador en: **`https://localhost:7196/movimientos`**
+### Configuración del Archivo `appsettings.json` del Frontend
+El archivo [appsettings.json](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/src/ZiurSoftwareChallenge/appsettings.json) especifica la dirección base de la API simulada:
+```json
+"Api": {
+  "BaseUrl": "http://localhost:5199/"
+}
+```
 
 ---
 
-## 5. Historial de Versiones
-Para ver los detalles del desarrollo incremental, consulte el archivo [CHANGELOG.md](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/CHANGELOG.md).
+## 5. Cómo Ejecutar el Proyecto
+
+Abra una o dos terminales en la raíz del repositorio y ejecute los siguientes comandos:
+
+### Paso 1: Restaurar dependencias con NuGet.org explícito
+```bash
+dotnet restore --source https://api.nuget.org/v3/index.json
+```
+
+### Paso 2: Compilar toda la solución
+```bash
+dotnet build
+```
+
+### Paso 3: Iniciar la Minimal API (Backend)
+```bash
+dotnet run --project src/ZiurSoftwareChallenge.Api
+```
+* La API estará escuchando en: **`http://localhost:5199/api/movimientos`**
+
+### Paso 4: Iniciar la Aplicación Blazor (Frontend)
+```bash
+dotnet run --project src/ZiurSoftwareChallenge
+```
+* La aplicación estará disponible en: **`http://localhost:5250`** o **`https://localhost:7121`**
+* Navega a la sección de **Movimientos** desde el menú o directamente a la ruta: **`/movimientos`**
+
+---
+
+## 6. Cómo Probar la Aplicación
+
+### Comprobación en Navegador
+1. Levanta ambos proyectos.
+2. Abre la URL `http://localhost:5199/api/movimientos` en el navegador y verifica que responda con la grilla en formato JSON exacta.
+3. Abre `http://localhost:5250/movimientos` (o puerto https) en el navegador y verifica que la grilla dibuje la tabla con los tres registros contables.
+
+---
+
+## 7. Pruebas Automáticas con Bruno
+
+1. Instala e inicia la herramienta **Bruno**.
+2. Presiona **Open Collection** y selecciona la carpeta **`bruno`** localizada en la raíz de la solución.
+3. En la esquina superior derecha, selecciona el ambiente **Development**.
+4. Selecciona la petición GET `Obtener Movimientos` y presiona **Send**.
+5. Las aserciones integradas validarán automáticamente:
+   * Código de estado HTTP igual a `200`.
+   * Estructura del cuerpo como un arreglo (`isArray`).
+   * Validación exacta del orden y valores de las claves del JSON (`Codigo` = 29, 51, 17).
+
+---
+
+## 8. Capturas del Funcionamiento
+
+### Vista de la Grilla Responsiva en Blazor
+*(Cargados los datos desde el servidor API local)*
+
+![Grilla de Movimientos](screenshots/grid_screenshot.png)
+
+### Validación del Endpoint JSON en la API
+*(Devolviendo los datos en PascalCase)*
+
+![Minimal API JSON](screenshots/api_screenshot.png)
+
+### Pruebas de Integración con Bruno
+*(Verificación de aserciones exitosas)*
+
+![Pruebas en Bruno](screenshots/bruno_screenshot.png)
+
+---
+
+## 9. Posibles Mejoras
+
+1. **Paginación y Filtrado del lado del Servidor**: Si la lista de movimientos escala a miles de registros, implementar parámetros en el endpoint `GET /api/movimientos?page=1&pageSize=10` para optimizar el rendimiento de la grilla.
+2. **Implementación de Base de Datos Real**: Conectar la Minimal API con un motor liviano como SQLite usando Entity Framework Core para hacer persistente la información de los movimientos contables.
+3. **Mecanismo de Reintento con Polly**: En el servicio `ApiMovimientoService`, integrar políticas de resiliencia y reintentos automáticos para mitigar caídas de red transitorias hacia la API.
+4. **Contenedorización con Docker**: Configurar archivos `Dockerfile` y un `docker-compose.yml` para levantar todo el stack técnico (Frontend, API) con un solo comando `docker-compose up`.
