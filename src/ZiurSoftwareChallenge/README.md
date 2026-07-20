@@ -252,7 +252,7 @@ Facilita debugging y monitoreo en producción. `ILogger` es la manera .NET de re
 1. Cuando recibas la URL de la API, actualiza `appsettings.json`
 2. Descomenta las líneas en `Program.cs` para activar `ApiMovimientoService`
 3. Prueba la conexión
-4. ¡Listo para producción!
+4. ¡Listo para demostración técnica y futuras extensiones o escalamiento.!
 
 ---
 

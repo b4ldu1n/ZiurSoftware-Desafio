@@ -4,14 +4,14 @@ namespace ZiurSoftwareChallenge.Services;
 
 /// <summary>
 /// Servicio simulado que devuelve datos de prueba en memoria.
-/// Utilizado durante desarrollo cuando Api:UseMock = true en appsettings.json
+/// Se usa como fallback de contingencia cuando la API real no está disponible.
 /// </summary>
 public class MockMovimientoService : IMovimientoService
 {
     public async Task<List<Movimiento>> ObtenerMovimientosAsync()
     {
         // Simular latencia de red
-        await Task.Delay(500);
+        await Task.Delay(300);
 
         return new List<Movimiento>
         {

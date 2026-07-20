@@ -7,10 +7,6 @@ Este documento registra la secuencia histórica de pasos y decisiones de ingenie
 ## 1. Verificación del Entorno Inicial e Instalación del SDK
 
 * **Paso**: Validación de la instalación de .NET en el equipo del desarrollador.
-* **Comando ejecutado**:
-  ```bash
-  dotnet --info
-  ```
 * **Resultado**: Confirmación de la instalación de .NET Core SDK 9.0 con runtimes habilitados para ASP.NET Core.
 
 ---
@@ -29,10 +25,6 @@ Este documento registra la secuencia histórica de pasos y decisiones de ingenie
 ## 3. Confianza de Certificados HTTPS locales
 
 * **Paso**: Trust del certificado de desarrollo para evitar errores de red local en llamadas asíncronas bajo HTTPS.
-* **Comando ejecutado**:
-  ```bash
-  dotnet dev-certs https --trust
-  ```
 * **Resultado**: Certificado autofirmado de desarrollo registrado y de confianza en el almacén de certificados de Windows.
 
 ---
@@ -79,10 +71,16 @@ Este documento registra la secuencia histórica de pasos y decisiones de ingenie
 
 ## 9. Depuración: Remoción del Servicio Mock para Integración Pura API
 
-* **Paso**: Refactorización técnica para remover por completo el soporte del Mock en el código fuente.
-* **Cambios**:
-  * Eliminación de la propiedad `UseMock` en `appsettings.json`.
-  * Simplificación de `Program.cs` del frontend para inyectar directamente `ApiMovimientoService` vía `AddHttpClient`.
-  * Eliminación física del archivo `MockMovimientoService.cs` de la carpeta de servicios.
-  * Recompilación completa de la solución.
-* **Resultado**: La aplicación Blazor queda configurada de forma limpia y lista para producción, consumiendo datos únicamente de la API.
+* **Paso**: Refactorización técnica para remover por completo el soporte del Mock en el código fuente, simplificando la inyección de dependencias a `ApiMovimientoService` directamente.
+
+---
+
+## 10. Integración Segura de la API Real de Ziur y Tolerancia a Fallos (Fallback)
+
+* **Paso**: Refactorización técnica para conectar con la API de producción de Ziur de forma segura e implementar redundancia de datos.
+* **Cambios realizados**:
+  * **Seguridad**: Inicialización de `user-secrets` para almacenar el token de autenticación fuera de control de versiones.
+  * **Resiliencia (Fallback)**: Recreación de `MockMovimientoService` e implementación del decorador `FallbackMovimientoService` para conmutar datos en caso de errores en la llamada REST.
+  * **Consumo Dinámico**: Modificación de `ApiMovimientoService` para inyectar cabeceras de autorización de forma dinámica a través de `HttpRequestMessage` e inyectar `IConfiguration`.
+  * **Configuración real**: Actualización de `appsettings.json` con la URL base de Ziur (`mainserver.ziursoftware.com`) y el recurso `DocumentosFillsCombos`.
+* **Resultado**: El sistema compila correctamente y queda en un estado altamente seguro y tolerante a fallos, listo para pruebas locales y despliegue final.

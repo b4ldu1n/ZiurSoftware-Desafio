@@ -1,108 +1,144 @@
-# 08 - Configuración del Cliente HTTP y Estructura de Integración
+# 08 - Configuración de Credenciales y Mecanismos de Fallback
 
-Este documento detalla los archivos del frontend que controlan el consumo de la API, explicando la estructura implementada tras la remoción definitiva de las dependencias locales en memoria (Mock).
-
----
-
-## Retiro del Servicio Mock en Memoria
-
-Para garantizar el cumplimiento de un entorno cliente-servidor real HTTP, el soporte para `MockMovimientoService` ha sido retirado de la base de código. La aplicación ahora está configurada de forma estricta para resolver las llamadas de movimientos hacia la Minimal API simuladora.
-
-Los 4 archivos que estructuran esta integración son:
-
-1. **`appsettings.json`** (Configuración de red)
-2. **`Program.cs`** (Inyección de dependencias)
-3. **`ApiMovimientoService.cs`** (Cliente HTTP REST)
-4. **`Movimiento.cs`** (Modelo de datos compartido)
+Este documento describe la estructura y configuración de seguridad implementada en el proyecto para integrar de forma segura el endpoint real de la API de Ziur, manteniendo el servicio Mock como mecanismo automático de contingencia (Fallback).
 
 ---
 
-## 1. Configuración de Red (`appsettings.json`)
+## Estructura de Integración y Seguridad
 
-El archivo [appsettings.json](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/src/ZiurSoftwareChallenge/appsettings.json) especifica la dirección base de la API mediante la llave `"BaseUrl"`:
+En lugar de alternar de forma manual mediante un interruptor en `appsettings.json`, la aplicación implementa una arquitectura auto-conmutada. Se intenta consumir el servicio de red; en caso de caída o falta de autenticación, el sistema retrocede al Mock local para garantizar la disponibilidad visual de la grilla contable.
+
+Los 5 archivos que estructuran esta integración son:
+
+1.  **`appsettings.json`** (Parámetros base de la API)
+2.  **`secrets.json`** (Almacén local seguro del Token)
+3.  **`Program.cs`** (Inyección en cadena de dependencias)
+4.  **`ApiMovimientoService.cs`** (Cliente HTTP con inyección de cabecera dinámica)
+5.  **`FallbackMovimientoService.cs`** (Decorador de contingencia y control de excepciones)
+
+---
+
+## 1. Configuración de Parámetros Públicos (`appsettings.json`)
+
+El archivo [appsettings.json](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/src/ZiurSoftwareChallenge/appsettings.json) contiene los parámetros públicos no sensibles necesarios para enrutar el cliente HTTP:
 
 ```json
 {
   "Api": {
-    "BaseUrl": "http://localhost:5199/"
+    "BaseUrl": "https://mainserver.ziursoftware.com/Ziur.API/basedatos_01/ZiurServiceRest.svc/api/",
+    "Endpoint": "DocumentosFillsCombos",
+    "AuthHeaderName": "Authorization",
+    "AuthHeaderValueFormat": "Bearer {0}",
+    "UseFallback": true
   }
 }
 ```
 
-* **`BaseUrl`**: Si la API cambia de puerto o es subida a un entorno corporativo de pruebas (ej: Azure o AWS), simplemente se modifica esta línea sin alterar el código C#.
-  * Ejemplo para Pruebas en Staging:
-    ```json
-    "BaseUrl": "https://api-staging.ziur.com/"
-    ```
+*   **`BaseUrl`**: URL del servidor de la API de Ziur.
+*   **`Endpoint`**: Ruta relativa del recurso (`DocumentosFillsCombos`).
+*   **`UseFallback`**: Habilita o deshabilita la contingencia del Mock.
 
 ---
 
-## 2. Inyección del Cliente HTTP (`Program.cs`)
+## 2. Configuración Segura de Credenciales (`secrets.json` - User Secrets)
 
-El archivo [Program.cs](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/src/ZiurSoftwareChallenge/Program.cs) lee la configuración al arrancar el host web y registra la clase `ApiMovimientoService` como la única implementación para `IMovimientoService`:
+Para desarrollo local, **nunca** guarde su Token de producción en `appsettings.json` ni lo suba a Git. Use el Administrador de Secretos de .NET.
+
+### Comandos de Configuración desde la Terminal
+1.  **Inicializar Secrets** (ya configurado en el proyecto):
+    ```bash
+    dotnet user-secrets init --project src/ZiurSoftwareChallenge/ZiurSoftwareChallenge.csproj
+    ```
+2.  **Establecer su Token manual**:
+    ```bash
+    dotnet user-secrets set "Api:AuthToken" "SU_TOKEN_REAL_AQUI" --project src/ZiurSoftwareChallenge/ZiurSoftwareChallenge.csproj
+    ```
+
+El framework de .NET leerá automáticamente la clave `Api:AuthToken` desde su almacén de secretos local e inyectará el token de forma segura durante la ejecución del programa.
+
+---
+
+## 3. Inyección en Cadena de Dependencias (`Program.cs`)
+
+El archivo [Program.cs](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/src/ZiurSoftwareChallenge/Program.cs) asocia la resolución del servicio al decorador:
 
 ```csharp
-// Registrar el servicio de movimientos dinámicamente conectando siempre con la API
+// Registrar servicios para el flujo seguro de API y Fallback
 var apiConfig = builder.Configuration.GetSection("Api");
 
-builder.Services.AddHttpClient<IMovimientoService, ApiMovimientoService>(client =>
+// A. Registrar el servicio Mock en memoria para contingencia
+builder.Services.AddScoped<MockMovimientoService>();
+
+// B. Registrar el HttpClient concreto asociado a ApiMovimientoService
+builder.Services.AddHttpClient<ApiMovimientoService>(client =>
 {
     client.BaseAddress = new Uri(apiConfig["BaseUrl"] ?? "http://localhost");
 });
+
+// C. Resolver la interfaz a través del intermediario Fallback
+builder.Services.AddScoped<IMovimientoService, FallbackMovimientoService>();
 ```
 
 ---
 
-## 3. Consumo REST asíncrono (`ApiMovimientoService.cs`)
+## 4. Lógica del Cliente HTTP (`ApiMovimientoService.cs`)
 
-El cliente HTTP tipado realiza la solicitud asíncrona a la Minimal API en [ApiMovimientoService.cs](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/src/ZiurSoftwareChallenge/Services/ApiMovimientoService.cs):
+El cliente HTTP recupera las credenciales dinámicamente y las aplica por petición utilizando `HttpRequestMessage`:
 
 ```csharp
-public class ApiMovimientoService : IMovimientoService
+public async Task<List<Movimiento>> ObtenerMovimientosAsync()
 {
-    private readonly HttpClient _http;
-    private readonly ILogger<ApiMovimientoService> _logger;
+    var endpoint = _configuration["Api:Endpoint"] ?? "DocumentosFillsCombos";
+    var token = _configuration["Api:AuthToken"];
+    var headerName = _configuration["Api:AuthHeaderName"] ?? "Authorization";
+    var headerValueFormat = _configuration["Api:AuthHeaderValueFormat"] ?? "Bearer {0}";
 
-    public ApiMovimientoService(HttpClient http, ILogger<ApiMovimientoService> logger)
+    var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
+
+    if (!string.IsNullOrWhiteSpace(token))
     {
-        _http = http;
-        _logger = logger;
+        var headerValue = string.Format(headerValueFormat, token);
+        request.Headers.TryAddWithoutValidation(headerName, headerValue);
     }
 
-    public async Task<List<Movimiento>> ObtenerMovimientosAsync()
-    {
-        try
-        {
-            _logger.LogInformation("Obteniendo movimientos desde la API...");
-            
-            // Consumo de la ruta relativa expuesta en la Minimal API
-            var resultado = await _http.GetFromJsonAsync<List<Movimiento>>("api/movimientos")
-                ?? new List<Movimiento>();
-            
-            return resultado;
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger.LogError($"Error al conectar con la API: {ex.Message}");
-            return new List<Movimiento>();
-        }
-    }
+    var response = await _http.SendAsync(request);
+    response.EnsureSuccessStatusCode(); // Lanza excepción si hay error HTTP (ej: 401, 403, 500)
+
+    return await response.Content.ReadFromJsonAsync<List<Movimiento>>()
+        ?? new List<Movimiento>();
 }
 ```
 
 ---
 
-## 4. El Modelo de Datos Compartido (`Movimiento.cs`)
+## 5. Control de Excepciones y Fallback (`FallbackMovimientoService.cs`)
 
-El modelo [Movimiento.cs](file:///c:/Users/Lenovo/ZiurSoftwareChallenge/src/ZiurSoftwareChallenge/Models/Movimiento.cs) encapsula la estructura del JSON y es mapeado automáticamente por el cliente HTTP:
+El servicio Wrapper intercepta cualquier error en la petición HTTP anterior y retorna los datos estables de contingencia de forma transparente para la grilla Blazor:
 
 ```csharp
-namespace ZiurSoftwareChallenge.Models;
-
-public class Movimiento
+public async Task<List<Movimiento>> ObtenerMovimientosAsync()
 {
-    public int Codigo { get; set; }
-    public string Descripcion { get; set; } = "";
-    public bool VActiva { get; set; }
+    try
+    {
+        // Intentar obtener de la API real
+        var result = await _apiService.ObtenerMovimientosAsync();
+        if (result != null && result.Count > 0)
+        {
+            return result;
+        }
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError($"Fallo al conectar con la API real: {ex.Message}");
+    }
+
+    // Activar contingencia si está configurada
+    if (_useFallback)
+    {
+        _logger.LogWarning("Redirigiendo flujo hacia Mock de respaldo contable.");
+        return await _mockService.ObtenerMovimientosAsync();
+    }
+
+    return new List<Movimiento>();
 }
 ```

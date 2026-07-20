@@ -7,22 +7,17 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Registrar el servicio de movimientos dinámicamente según configuración
+// Registrar servicios para el flujo seguro de API y Fallback
 var apiConfig = builder.Configuration.GetSection("Api");
-var useMock = apiConfig.GetValue<bool>("UseMock", defaultValue: false);
 
-if (useMock)
+builder.Services.AddScoped<MockMovimientoService>();
+
+builder.Services.AddHttpClient<ApiMovimientoService>(client =>
 {
-    builder.Services.AddScoped<IMovimientoService, MockMovimientoService>();
-}
-else
-{
-    builder.Services.AddHttpClient<IMovimientoService, ApiMovimientoService>(client =>
-    {
-        var baseUrl = apiConfig["BaseUrl"] ?? "http://localhost:7000";
-        client.BaseAddress = new Uri(baseUrl);
-    });
-}
+    client.BaseAddress = new Uri(apiConfig["BaseUrl"] ?? "http://localhost");
+});
+
+builder.Services.AddScoped<IMovimientoService, FallbackMovimientoService>();
 
 var app = builder.Build();
 
