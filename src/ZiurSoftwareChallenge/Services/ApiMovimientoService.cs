@@ -1,4 +1,6 @@
 using ZiurSoftwareChallenge.Models;
+using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace ZiurSoftwareChallenge.Services;
 
@@ -47,14 +49,62 @@ public class ApiMovimientoService : IMovimientoService
 
         // Realizar la solicitud
         var response = await _http.SendAsync(request);
-        
+
         // Lanzar excepción si el servidor responde con error (ej. 401, 403, 500, etc.)
         response.EnsureSuccessStatusCode();
 
-        var resultado = await response.Content.ReadFromJsonAsync<List<Movimiento>>()
-            ?? new List<Movimiento>();
+        // Intentar deserializar directamente a List<Movimiento>
+        try
+        {
+            var listaDirecta = await response.Content.ReadFromJsonAsync<List<Movimiento>>();
+            if (listaDirecta != null)
+            {
+                _logger.LogInformation($"Petición HTTP exitosa. Se deserializaron {listaDirecta.Count} movimientos (deserialización directa).");
+                return listaDirecta;
+            }
+        }
+        catch (Exception ex) when (ex is NotSupportedException || ex is JsonException)
+        {
+            _logger.LogDebug("Deserialización directa a List<Movimiento> falló, se intentará parsear el JSON crudo.");
+        }
 
-        _logger.LogInformation($"Petición HTTP exitosa. Se deserializaron {resultado.Count} movimientos.");
-        return resultado;
+        // Si la API devuelve un objeto wrapper (por ejemplo { "value": [ ... ], "Count": N }),
+        // intentamos buscar el primer array dentro del JSON y deserializarlo.
+        try
+        {
+            using var stream = await response.Content.ReadAsStreamAsync();
+            using var doc = await JsonDocument.ParseAsync(stream);
+
+            // Si la raíz es un array, deserializamos directamente
+            if (doc.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                var raw = doc.RootElement.GetRawText();
+                var arr = JsonSerializer.Deserialize<List<Movimiento>>(raw);
+                _logger.LogInformation($"Petición HTTP exitosa. Se deserializaron {arr?.Count ?? 0} movimientos (raíz array).");
+                return arr ?? new List<Movimiento>();
+            }
+
+            // Si la raíz es un objeto, buscar la primera propiedad que sea un array
+            if (doc.RootElement.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var prop in doc.RootElement.EnumerateObject())
+                {
+                    if (prop.Value.ValueKind == JsonValueKind.Array)
+                    {
+                        var raw = prop.Value.GetRawText();
+                        var arr = JsonSerializer.Deserialize<List<Movimiento>>(raw);
+                        _logger.LogInformation($"Petición HTTP exitosa. Se deserializaron {arr?.Count ?? 0} movimientos (wrapper '{prop.Name}').");
+                        return arr ?? new List<Movimiento>();
+                    }
+                }
+            }
+        }
+        catch (JsonException je)
+        {
+            _logger.LogError($"Error al parsear JSON de la API: {je.Message}");
+        }
+
+        _logger.LogWarning("No fue posible deserializar movimientos desde la respuesta de la API.");
+        return new List<Movimiento>();
     }
 }

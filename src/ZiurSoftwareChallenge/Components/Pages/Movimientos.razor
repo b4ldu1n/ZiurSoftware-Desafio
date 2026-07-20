@@ -6,7 +6,7 @@
 <div class="container mt-5">
     <h1 class="mb-4">Movimientos</h1>
 
-    @if (movimientos == null)
+    @if (isLoading)
     {
         <div class="alert alert-info" role="alert">
             <div class="spinner-border spinner-border-sm me-2" role="status">
@@ -15,20 +15,32 @@
             Cargando datos...
         </div>
     }
-    else if (movimientos.Count == 0)
+    else if (!isSuccess)
     {
-        <div class="alert alert-warning" role="alert">
-            No hay movimientos disponibles.
+        <div class="alert alert-danger d-flex justify-content-between align-items-center" role="alert">
+            <div>
+                <strong>❌ Error de Conexión</strong>
+                <div>@errorMessage</div>
+            </div>
+            <button class="btn btn-outline-light btn-sm" @onclick="ReintentarConexion">Reintentar Conexión</button>
         </div>
     }
     else
     {
+        <div class="alert alert-success d-flex justify-content-between align-items-center" role="alert">
+            <div>
+                <strong>✔ Conexión exitosa</strong>
+                <div>Código de Red: @httpStatusMessage</div>
+            </div>
+            <button class="btn btn-outline-light btn-sm" @onclick="ReintentarConexion">Reintentar Conexión</button>
+        </div>
+
         <div class="table-responsive">
             <table class="table table-striped table-hover">
                 <thead class="table-dark">
                     <tr>
-                        <th scope="col">Código</th>
-                        <th scope="col">Descripción</th>
+                        <th scope="col" class="sortable" @onclick="() => CambiarOrden(nameof(Movimiento.Codigo))">Código @GetSortIndicator(nameof(Movimiento.Codigo))</th>
+                        <th scope="col" class="sortable" @onclick="() => CambiarOrden(nameof(Movimiento.Descripcion))">Descripción @GetSortIndicator(nameof(Movimiento.Descripcion))</th>
                         <th scope="col">Activa</th>
                     </tr>
                 </thead>
@@ -59,18 +71,88 @@
 </div>
 
 @code {
-    private List<Movimiento>? movimientos;
+    private List<Movimiento> movimientos = new();
+    private bool isLoading = true;
+    private bool isSuccess;
+    private string httpStatusMessage = string.Empty;
+    private string errorMessage = string.Empty;
+    private string currentSortField = nameof(Movimiento.Codigo);
+    private bool sortAscending = true;
 
     protected override async Task OnInitializedAsync()
     {
+        await CargarMovimientosAsync();
+    }
+
+    private async Task CargarMovimientosAsync()
+    {
+        isLoading = true;
+        isSuccess = false;
+        errorMessage = string.Empty;
+        httpStatusMessage = string.Empty;
+
         try
         {
             movimientos = await Servicio.ObtenerMovimientosAsync();
+            isSuccess = true;
+            httpStatusMessage = "200 OK";
+            OrdenarMovimientos();
+        }
+        catch (HttpRequestException httpEx)
+        {
+            isSuccess = false;
+            httpStatusMessage = httpEx.StatusCode.HasValue ? ((int)httpEx.StatusCode.Value).ToString() + " " + httpEx.StatusCode.Value : "Sin código HTTP";
+            errorMessage = $"{httpStatusMessage} - {httpEx.Message}";
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al cargar movimientos: {ex.Message}");
-            movimientos = new List<Movimiento>();
+            isSuccess = false;
+            httpStatusMessage = "Error de red";
+            errorMessage = ex.Message;
         }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ReintentarConexion()
+    {
+        await CargarMovimientosAsync();
+    }
+
+    private void CambiarOrden(string field)
+    {
+        if (currentSortField == field)
+        {
+            sortAscending = !sortAscending;
+        }
+        else
+        {
+            currentSortField = field;
+            sortAscending = true;
+        }
+
+        OrdenarMovimientos();
+    }
+
+    private void OrdenarMovimientos()
+    {
+        movimientos = currentSortField switch
+        {
+            nameof(Movimiento.Codigo) => sortAscending ? movimientos.OrderBy(m => m.Codigo).ToList() : movimientos.OrderByDescending(m => m.Codigo).ToList(),
+            nameof(Movimiento.Descripcion) => sortAscending ? movimientos.OrderBy(m => m.Descripcion).ToList() : movimientos.OrderByDescending(m => m.Descripcion).ToList(),
+            _ => movimientos
+        };
+    }
+
+    private string GetSortIndicator(string field)
+    {
+        if (currentSortField != field)
+        {
+            return string.Empty;
+        }
+
+        return sortAscending ? "▲" : "▼";
     }
 }

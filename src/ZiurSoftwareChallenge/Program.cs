@@ -7,17 +7,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Registrar servicios para el flujo seguro de API y Fallback
+// Registrar servicios para consumo exclusivo de la API real de Ziur
 var apiConfig = builder.Configuration.GetSection("Api");
 
-builder.Services.AddScoped<MockMovimientoService>();
-
-builder.Services.AddHttpClient<ApiMovimientoService>(client =>
+// Register a typed HttpClient for the interface so DI provides a configured HttpClient
+builder.Services.AddHttpClient<IMovimientoService, ApiMovimientoService>(client =>
 {
     client.BaseAddress = new Uri(apiConfig["BaseUrl"] ?? "http://localhost");
 });
-
-builder.Services.AddScoped<IMovimientoService, FallbackMovimientoService>();
 
 var app = builder.Build();
 

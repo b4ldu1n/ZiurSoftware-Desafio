@@ -1,6 +1,0 @@
-@ZiurSoftwareChallenge.Api_HostAddress = http://localhost:5199
-
-GET {{ZiurSoftwareChallenge.Api_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
