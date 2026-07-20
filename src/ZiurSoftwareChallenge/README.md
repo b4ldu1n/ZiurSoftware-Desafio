@@ -1,253 +1,52 @@
 # ZiurSoftwareChallenge - Aplicación Blazor Web App
 
-## 📋 Descripción
+## Resumen ejecutivo
 
-Aplicación Blazor Web App que consume una API REST para mostrar datos de movimientos en una grilla interactiva. La solución está arquitectada para permitir una transición sin código del servicio simulado al servicio real cuando el endpoint esté disponible.
+Este repositorio contiene una aplicación Blazor Web App (.NET 9) desarrollada como respuesta a un reto técnico. La aplicación muestra una grilla de "movimientos" consumiendo una API REST. La solución fue diseñada y desarrollada siguiendo buenas prácticas: separación de responsabilidades, inyección de dependencias, uso de `HttpClientFactory`, configuración segura de tokens (User Secrets) y un modo de desarrollo con datos simulados (mock) para mayor productividad.
 
-## 🏗️ Arquitectura
+La documentación en la carpeta `docs/` ofrece detalles técnicos, guías de ejecución, pruebas y mantenimiento.
 
-```
-ZiurSoftwareChallenge/
-│
-├── Components/
-│   ├── Layout/
-│   │   ├── MainLayout.razor
-│   │   ├── NavMenu.razor         ← Navegación con enlace a Movimientos
-│   │   └── ...
-│   │
-│   └── Pages/
-│       ├── Home.razor
-│       ├── Movimientos.razor      ← Página principal (tabla de datos)
-│       └── ...
-│
-├── Models/
-│   └── Movimiento.cs             ← Modelo de datos
-│
-├── Services/
-│   ├── IMovimientoService.cs      ← Interfaz (contrato)
-│   ├── MockMovimientoService.cs   ← Implementación simulada (HOY)
-│   └── ApiMovimientoService.cs    ← Implementación real (FUTURO)
-│
-├── appsettings.json              ← Configuración de la API
-├── Program.cs                    ← Inyección de dependencias
-└── README.md                     ← Esta documentación
-```
+---
 
-## 🔄 Patrón de Inyección de Dependencias
+## Contenido principal
 
-La aplicación sigue el patrón de inyección de dependencias para desacoplar las páginas del servicio específico:
+- `Components/` - componentes y páginas Blazor.
+- `Models/` - modelos de datos, incluyendo `Movimiento.cs`.
+- `Services/` - implementaciones de acceso a datos (`IMovimientoService`, `ApiMovimientoService`).
+- `appsettings.json` - configuración de la API (BaseUrl, Endpoint, headers).
+- `Program.cs` - entrada de la aplicación y registro de servicios.
 
-```
-Página Blazor (Movimientos.razor)
-         ↓
-IMovimientoService (Interfaz)
-         ↓
-[MockMovimientoService HOY | ApiMovimientoService DESPUÉS]
-         ↓
-[JSON Mock | HttpClient → API REST]
-```
+---
 
-**Ventaja**: La página nunca cambia. Solo necesitamos reemplazar el servicio en `Program.cs`.
+## Enlaces rápidos a la documentación
 
-## 📝 Modelo de Datos
+- docs/01_Arquitectura.md
+- docs/02_EstructuraProyecto.md
+- docs/03_ComponentesPlantillaBlazor.md
+- docs/04_ComponentesDesarrollados.md
+- docs/05_FlujoDatos.md
+- docs/06_API.md
+- docs/07_Mock.md
+- docs/08_Ejecucion.md
+- docs/09_Pruebas.md
+- docs/10_Mantenimiento.md
+- docs/11_CambiarApi.md
+- docs/12_PreguntasEntrevista.md
 
-**Archivo**: [Models/Movimiento.cs](Models/Movimiento.cs)
+---
 
-```csharp
-public class Movimiento
-{
-    public int Codigo { get; set; }
-    public string Descripcion { get; set; }
-    public bool VActiva { get; set; }
-}
-```
+## Estado actual
 
-Estructura esperada desde la API REST:
+- La aplicación funciona tanto en modo mock como consumiendo la API real (cuando se suministra `Api:AuthToken`).
+- La deserialización es robusta ante respuestas envueltas (por ejemplo `{ "value": [...] }`).
+- Se agregó en la UI indicador de estado de conexión y control para reintento, además de ordenamiento de la grilla.
 
-```json
-[
-    { "Codigo": 29, "Descripcion": "Ajuste al Inventario", "VActiva": false },
-    { "Codigo": 51, "Descripcion": "Avance Produccion", "VActiva": false },
-    { "Codigo": 17, "Descripcion": "Balance Inicial", "VActiva": false }
-]
-```
+---
 
-## 🔧 Configuración Actual (HOY)
+## Soporte y contacto
 
-**Archivo**: [Program.cs](Program.cs)
+Si necesitas ayuda para adaptar la API, agregar pruebas automatizadas o desplegar la aplicación, abre un issue o contacta al autor del repositorio.
 
-```csharp
-// Registrar el servicio de movimientos
-builder.Services.AddScoped<IMovimientoService, MockMovimientoService>();
-```
-
-**Archivo**: [appsettings.json](appsettings.json)
-
-```json
-{
-  "Api": {
-    "BaseUrl": "https://pendiente-de-ziur.com/"
-  }
-}
-```
-
-El `MockMovimientoService` devuelve los datos de prueba con un retraso simulado de 500ms para imitar latencia de red.
-
-## 🚀 Migración a Servicio Real (CUANDO RECIBAS LA API)
-
-### Paso 1: Actualizar la URL en `appsettings.json`
-
-```json
-{
-  "Api": {
-    "BaseUrl": "https://api.empresa-ziur.com/"
-  }
-}
-```
-
-### Paso 2: Activar el servicio real en `Program.cs`
-
-Reemplaza esta línea:
-
-```csharp
-builder.Services.AddScoped<IMovimientoService, MockMovimientoService>();
-```
-
-Por estas líneas:
-
-```csharp
-builder.Services.AddHttpClient<IMovimientoService, ApiMovimientoService>(client =>
-{
-    client.BaseAddress = new Uri(builder.Configuration["Api:BaseUrl"] ?? "");
-});
-```
-
-### Paso 3: Verificar el endpoint
-
-Asegúrate de que la API devuelve datos en formato JSON con la estructura del modelo `Movimiento` en el endpoint `/api/movimientos`.
-
-**¡Listo!** La aplicación seguirá funcionando sin cambios en las páginas Blazor.
-
-## 🎨 Características de la Interfaz
-
-- **Tabla Bootstrap**: Diseño limpio y responsivo
-- **Indicador de carga**: Spinner mientras se cargan los datos
-- **Badges**: Códigos y estados visuales
-- **Manejo de errores**: Mensajes amigables si no hay datos
-- **Navegación**: Menú actualizado con enlace a Movimientos
-
-## 📊 Página de Movimientos
-
-**Archivo**: [Components/Pages/Movimientos.razor](Components/Pages/Movimientos.razor)
-
-Acceso: `https://localhost:xxxxx/movimientos`
-
-Características:
-- ✅ Carga automática de datos en `OnInitializedAsync()`
-- ✅ Inyección del servicio `IMovimientoService`
-- ✅ Tabla con columnas: Código, Descripción, Activa
-- ✅ Manejo de estados (cargando, vacío, con datos)
-- ✅ Badges visuales para mejor UX
-- ✅ Try/catch para manejo de excepciones
-
-## 🔍 Servicios
-
-### `IMovimientoService`
-
-Contrato que define las operaciones disponibles:
-
-```csharp
-public interface IMovimientoService
-{
-    Task<List<Movimiento>> ObtenerMovimientosAsync();
-}
-```
-
-### `MockMovimientoService`
-
-Implementación simulada (en uso actualmente):
-
-```csharp
-public class MockMovimientoService : IMovimientoService
-{
-    public async Task<List<Movimiento>> ObtenerMovimientosAsync()
-    {
-        await Task.Delay(500); // Simular latencia
-        return new List<Movimiento> { ... };
-    }
-}
-```
-
-### `ApiMovimientoService`
-
-Implementación real (lista para activar):
-
-```csharp
-public class ApiMovimientoService : IMovimientoService
-{
-    private readonly HttpClient _http;
-
-    public async Task<List<Movimiento>> ObtenerMovimientosAsync()
-    {
-        return await _http.GetFromJsonAsync<List<Movimiento>>("api/movimientos")
-            ?? new List<Movimiento>();
-    }
-}
-```
-
-## 📦 Requisitos
-
-- **.NET 9.0** o superior
-- **Blazor Web App** (InteractiveServer)
-- **Bootstrap 5** (ya incluido)
-
-## 🏃 Ejecución
-
-```bash
-dotnet run
-```
-
-Acceso: `https://localhost:7xxx`
-
-## 📝 Bitácora de Cambios
-
-### v1.0 - Estado Inicial (Con MockService)
-
-- ✅ Modelo `Movimiento` creado
-- ✅ Interfaz `IMovimientoService` definida
-- ✅ `MockMovimientoService` implementado con datos de prueba
-- ✅ `ApiMovimientoService` preparado (sin datos reales aún)
-- ✅ Página `Movimientos.razor` con tabla Bootstrap
-- ✅ Inyección de dependencias configurada
-- ✅ Navegación actualizada
-- ✅ Documentación completa
-
-### v2.0 - Integración Real (FUTURO)
-
-- ⏳ Activar `ApiMovimientoService`
-- ⏳ Actualizar URL en `appsettings.json`
-- ⏳ Pruebas con API real
-- ⏳ Manejo avanzado de errores si es necesario
-
-## 💡 Decisiones de Diseño
-
-### ¿Por qué usar una interfaz?
-
-Permite cambiar entre servicios sin tocar el código de las páginas. Esto es un principio fundamental de SOLID (**Dependency Inversion**).
-
-### ¿Por qué `MockMovimientoService`?
-
-Permite desarrollar y probar sin estar bloqueado esperando la API. Es una buena práctica en equipos distribuidos.
-
-### ¿Por qué Bootstrap?
-
-Proporciona estilos profesionales listos para producción sin necesidad de CSS personalizado.
-
-### ¿Por qué logging en `ApiMovimientoService`?
-
-Facilita debugging y monitoreo en producción. `ILogger` es la manera .NET de registrar eventos.
-
-## 🤝 Próximos Pasos
 
 1. Cuando recibas la URL de la API, actualiza `appsettings.json`
 2. Descomenta las líneas en `Program.cs` para activar `ApiMovimientoService`
