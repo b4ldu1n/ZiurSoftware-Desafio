@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Ziur Software Challenge - Solución Completa (.NET 9)
 
 ¡Bienvenido al repositorio de la solución del desafío técnico de selección de **Ziur Software**! Este proyecto implementa una grilla interactiva en **Blazor Web App (.NET 9)** que consume datos contables y de inventario de forma asíncrona, conectándose mediante un cliente HTTP seguro a la API real de Ziur, e implementando un mecanismo automático de redundancia de datos (Fallback).
@@ -109,3 +110,7 @@ dotnet run --project src/ZiurSoftwareChallenge
 1.  Establece un Token válido usando el comando `dotnet user-secrets set "Api:AuthToken" "TU_TOKEN"`.
 2.  Recarga la página `/movimientos` en el navegador.
 3.  *Resultado esperado*: El cliente HTTP inyectará la cabecera `Authorization: Bearer <TU_TOKEN>`, consumirá con éxito el endpoint `DocumentosFillsCombos` del servidor de Ziur y poblará la grilla con los datos reales devueltos.
+=======
+# ZiurSoftware-Desafio
+conexion con API
+>>>>>>> 2148827cd94135b81577eac487d524975fe1821e
