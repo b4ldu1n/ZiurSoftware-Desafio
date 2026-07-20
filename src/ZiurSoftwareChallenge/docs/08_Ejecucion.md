@@ -2,10 +2,7 @@
 
 Pasos rápidos (Windows PowerShell):
 
-1. Clonar el repositorio
-
-```powershell
-git clone <repo-url>
+1. Descargar el repositorio
 ```
 
 2. Entrar a la carpeta del proyecto
